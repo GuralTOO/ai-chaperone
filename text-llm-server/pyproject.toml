@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "core"
+version = "0.1.0"
+description = "LLM task execution and configuration management"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic==2.11.0",
+    "requests==2.32.0",
+    "boto3>=1.35.0"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+core = ["prompts/*"]

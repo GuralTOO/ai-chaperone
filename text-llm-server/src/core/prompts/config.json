@@ -1,0 +1,4 @@
+{
+    "prompt_types": ["system", "user", "json"],
+    "category_types": ["safety", "summary"]
+}

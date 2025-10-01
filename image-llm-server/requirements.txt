@@ -1,0 +1,21 @@
+annotated-types==0.7.0
+av==15.1.0
+boto3==1.40.42
+botocore==1.40.42
+certifi==2025.8.3
+charset-normalizer==3.4.3
+# Editable Git install with no remote (core==0.1.0)
+-e /home/ec2-user/project
+idna==3.10
+jmespath==1.0.1
+numpy==2.3.3
+pillow==11.3.0
+pydantic==2.11.0
+pydantic_core==2.33.0
+python-dateutil==2.9.0.post0
+requests==2.32.0
+s3transfer==0.14.0
+six==1.17.0
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+urllib3==2.5.0
