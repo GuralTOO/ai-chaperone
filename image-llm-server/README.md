@@ -64,7 +64,7 @@ Edit `docker-compose.yml` to adjust:
 ### Start Services
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 This will:
@@ -79,20 +79,20 @@ This will:
 
 ```bash
 # View logs from both services
-docker-compose logs -f
+docker compose logs -f
 
 # View logs from specific service
-docker-compose logs -f vllm
-docker-compose logs -f worker
+docker compose logs -f vllm
+docker compose logs -f worker
 
 # Check service health
-docker-compose ps
+docker compose ps
 ```
 
 ### Stop Services
 
 ```bash
-docker-compose down
+docker compose down
 ```
 
 ## Configuration
@@ -161,8 +161,8 @@ Results are saved to:
 
 ### Worker Can't Connect to VLLM
 
-- Check VLLM container is healthy: `docker-compose ps`
-- View VLLM logs: `docker-compose logs vllm`
+- Check VLLM container is healthy: `docker compose ps`
+- View VLLM logs: `docker compose logs vllm`
 - Verify healthcheck passes: `curl http://localhost:8000/health`
 
 ### AWS Credentials Issues
