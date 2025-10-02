@@ -189,13 +189,13 @@ vllm serve google/gemma-3-4b-it # or your model name / path to model
 # Ctrl+A D to detach
 ```
 
-4. Set environment variables and run worker:
+3. Set environment variables and run worker:
 
 ```bash
 export VLLM_URL=http://localhost:8000
 export AWS_REGION=us-east-2
 export QUEUE_NAME=your-queue-name
-python -m core.aws_server
+aws-server # python -m core.aws_server also works
 ```
 
 ## Performance

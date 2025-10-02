@@ -17,6 +17,9 @@ dependencies = [
     "av>=13.0.0"
 ]
 
+[project.scripts]
+aws-server = "core.aws_server:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
