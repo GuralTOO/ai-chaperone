@@ -16,7 +16,7 @@ services:
       - TENSOR_PARALLEL_SIZE=1
       - HF_TOKEN=${HF_TOKEN}
     volumes:
-      - ./models:/models
+      - models:/models
     ports:
       - "8000:8000"
     deploy:
