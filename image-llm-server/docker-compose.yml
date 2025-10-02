@@ -47,7 +47,7 @@ services:
     environment:
       - VLLM_URL=http://vllm:8000
       - AWS_REGION=us-east-2
-      - QUEUE_NAME=ai-chaperone-image-processing-queue
+      - SQS_QUEUE_NAME=ai-chaperone-image-processing-queue
       - OUTPUT_BUCKET=ai-chaperone-dev
       - DYNAMO_TABLE=ai-chaperone-video-moderation-jobs
       # AWS credentials will be picked up from IAM role on EC2

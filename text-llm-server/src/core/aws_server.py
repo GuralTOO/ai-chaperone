@@ -326,10 +326,10 @@ class SQSPollingServer:
 
 def main():
     """Main entry point"""
-    # Configuration
-    QUEUE_NAME = "ai-chaperone-text-llm-queue"
-    REGION = "us-east-2"  # Adjust if your queue is in a different region
-    
+    # Configuration from environment variables
+    QUEUE_NAME = os.getenv("SQS_QUEUE_NAME", "ai-chaperone-text-llm-queue")
+    REGION = os.getenv("AWS_REGION", "us-east-2")
+
     try:
         # Create and run the server
         server = SQSPollingServer(QUEUE_NAME, REGION)
