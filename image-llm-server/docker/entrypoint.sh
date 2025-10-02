@@ -79,7 +79,7 @@ download_from_huggingface() {
         exit 1
     fi
     
-    if ! huggingface-cli download "${MODEL_ID}" \
+    if ! hf download "${MODEL_ID}" \
         --local-dir "${model_path}" \
         --local-dir-use-symlinks False \
         ${HF_TOKEN:+--token "${HF_TOKEN}"} >&2; then
