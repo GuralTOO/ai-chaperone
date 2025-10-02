@@ -14,6 +14,9 @@ dependencies = [
     "boto3>=1.35.0"
 ]
 
+[project.scripts]
+aws-server = "core.aws_server:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
