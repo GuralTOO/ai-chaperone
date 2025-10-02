@@ -5,16 +5,15 @@ import logging
 from datetime import datetime
 import signal
 import sys
-from model_client import ModelClient
+from .model_client import ModelClient
 from core.utils.model_utils import get_system_prompt, get_user_prompt, get_json_schema
-from core.utils.video_utils import sample_video_frames 
+from core.utils.video_utils import sample_video_frames
 import tempfile
 import os
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -23,50 +22,53 @@ DYNAMO_TABLE = "ai-chaperone-video-moderation-jobs"
 
 
 class SQSPollingServer:
-    def __init__(self, queue_name, region='us-east-2'):
+    def __init__(self, queue_name, region="us-east-2"):
         """Initialize the SQS polling server"""
         self.queue_name = queue_name
         self.region = region
         self.running = True
-        
-        # Initialize AWS clients
-        self.sqs = boto3.client('sqs', region_name=region)
-        self.s3 = boto3.client('s3', region_name=region)
-        self.dynamo_table = boto3.resource('dynamodb', region_name=region).Table(DYNAMO_TABLE)
-        self.model_client = ModelClient()
 
+        # Initialize AWS clients
+        self.sqs = boto3.client("sqs", region_name=region)
+        self.s3 = boto3.client("s3", region_name=region)
+        self.dynamo_table = boto3.resource("dynamodb", region_name=region).Table(
+            DYNAMO_TABLE
+        )
+        self.model_client = ModelClient()
 
         # Get queue URL
         try:
             response = self.sqs.get_queue_url(QueueName=queue_name)
-            self.queue_url = response['QueueUrl']
+            self.queue_url = response["QueueUrl"]
             logger.info(f"Connected to queue: {self.queue_url}")
         except Exception as e:
             logger.error(f"Failed to get queue URL: {e}")
             raise
-    
+
     def _parse_s3_url(self, s3_url):
         """Parse S3 URL to get bucket and key"""
         # s3://bucket-name/path/to/object
-        if s3_url.startswith('s3://'):
+        if s3_url.startswith("s3://"):
             s3_url = s3_url[5:]
-            parts = s3_url.split('/', 1)
+            parts = s3_url.split("/", 1)
             if len(parts) == 2:
                 return parts[0], parts[1]
         return None, None
-    
+
     def _parse_llm_response(self, response):
         """Parse the LLM response:
-        
-            "reason": "detailed explanation of analysis and scoring rationale"
-            "categories": ["list of violated categories, or empty array if none"],
-            "category_scores": [list of scores corresponding to categories, or empty array if none],
-            "critical": "DROP/LOW/MEDIUM/HIGH",
-            "critical_score_confidence": "1-10 confidence rating"       
-    
+
+        "reason": "detailed explanation of analysis and scoring rationale"
+        "categories": ["list of violated categories, or empty array if none"],
+        "category_scores": [list of scores corresponding to categories, or empty array if none],
+        "critical": "DROP/LOW/MEDIUM/HIGH",
+        "critical_score_confidence": "1-10 confidence rating"
+
         """
         if not isinstance(response, dict):
-            logger.error("Invalid LLM response: expected dict, got %s", type(response).__name__)
+            logger.error(
+                "Invalid LLM response: expected dict, got %s", type(response).__name__
+            )
             return None
 
         choices = response.get("choices")
@@ -88,7 +90,7 @@ class SQSPollingServer:
         if not isinstance(content, str) or not content.strip():
             logger.error("Invalid LLM response: 'content' missing or empty")
             return None
-        
+
         logger.info(f"Raw LLM content: {content}")
         logger.info(f"Stripped LLM content: {content[8:-3].strip()}")
         try:
@@ -101,22 +103,22 @@ class SQSPollingServer:
             logger.error(f"Failed to parse LLM response content as JSON: {e}")
             return None
 
-
-
-    def analyze_video_for_issues(self, video_path: str, fps: int = 1, max_frames: int = 50):
+    def analyze_video_for_issues(
+        self, video_path: str, fps: int = 1, max_frames: int = 50
+    ):
         """
         Analyze a video for any issues by sampling frames and sending them to the model.
-        
+
         Args:
             video_path (str): Path to the video file to analyze
-        
+
         Returns:
             str: Model response about any issues found in the video frames
         """
         logger.info(f"Analyzing video for issues: {video_path}")
 
         client = ModelClient()
-        
+
         try:
             # Sample frames from the video
             logger.info(f"Sampling frames from video: {video_path}")
@@ -126,47 +128,45 @@ class SQSPollingServer:
                 logger.error(f"Video file does not exist: {video_path}")
                 return None
 
-            sampled_images = sample_video_frames(video_path, fps=fps, max_frames=max_frames)
-            
+            sampled_images = sample_video_frames(
+                video_path, fps=fps, max_frames=max_frames
+            )
+
             if not sampled_images:
                 logger.error("No frames were sampled from the video")
                 return None
-            
+
             logger.info(f"Successfully sampled {len(sampled_images)} frames")
-            
+
             # Prepare messages with the sampled images using VLLM server syntax
             messages = [
-                {
-                    "role": "system",
-                    "content": get_system_prompt()
-                },
+                {"role": "system", "content": get_system_prompt()},
                 {
                     "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": get_user_prompt()
-                        }
-                    ] + [
+                    "content": [{"type": "text", "text": get_user_prompt()}]
+                    + [
                         {
                             "type": "image_url",
-                            "image_url": {"url": f"data:image/jpeg;base64,{image}"}
-                        } for image in sampled_images
-                    ]
-                }
+                            "image_url": {"url": f"data:image/jpeg;base64,{image}"},
+                        }
+                        for image in sampled_images
+                    ],
+                },
             ]
-            
+
             # Send to model for analysis
             logger.info("Sending frames to model for analysis")
-            response = client.chat_completion(messages, temperature=0.3, extra_body={"guided_json": get_json_schema()})
-            
+            response = client.chat_completion(
+                messages, temperature=0.3, extra_body={"guided_json": get_json_schema()}
+            )
+
             if response:
                 logger.info("Analysis completed successfully")
                 return response
             else:
                 logger.error("No response received from model")
                 return None
-                
+
         except Exception as e:
             logger.error(f"Error analyzing video: {str(e)}")
             return None
@@ -187,12 +187,12 @@ class SQSPollingServer:
         if video_path is None:
             return False
 
-        try: 
+        try:
             logger.info(f"Calling analyze_video_for_issues with path: {video_path}")
             response = self.analyze_video_for_issues(video_path=video_path)
             if response is None:
                 return False
-            
+
             llm_result = self._parse_llm_response(response)
             if llm_result is None:
                 logger.error("Failed to parse LLM response")
@@ -207,9 +207,9 @@ class SQSPollingServer:
 
             if not self._update_dynamo(job_id, s3_url):
                 return False
-            
+
             return True
-        
+
         finally:
             try:
                 if video_path and os.path.exists(video_path):
@@ -217,7 +217,6 @@ class SQSPollingServer:
                     logger.info(f"Deleted temporary video: {video_path}")
             except Exception as e:
                 logger.warning(f"Failed to delete temporary video {video_path}: {e}")
-
 
     def _parse_message(self, message_body):
         """Parse and validate incoming message JSON."""
@@ -227,8 +226,8 @@ class SQSPollingServer:
             logger.error(f"Failed to parse message JSON: {e}")
             return None
 
-        job_id = data.get('job_id')
-        video_s3_url = data.get('video_s3_url')
+        job_id = data.get("job_id")
+        video_s3_url = data.get("video_s3_url")
 
         if not job_id or not video_s3_url:
             logger.error("Missing required fields: job_id or video_s3_url")
@@ -249,12 +248,12 @@ class SQSPollingServer:
             # Create a temporary directory for video files
             temp_dir = os.path.join(tempfile.gettempdir(), "video_processing")
             os.makedirs(temp_dir, exist_ok=True)
-            
+
             # Use job_id for filename with original extension
-            file_extension = os.path.splitext(key)[-1] or '.mp4'
+            file_extension = os.path.splitext(key)[-1] or ".mp4"
             video_path = os.path.join(temp_dir, f"{job_id}{file_extension}")
-            with open(video_path, 'wb') as f:
-                f.write(response['Body'].read())
+            with open(video_path, "wb") as f:
+                f.write(response["Body"].read())
             return video_path
 
         except Exception as e:
@@ -292,8 +291,8 @@ class SQSPollingServer:
             self.s3.put_object(
                 Bucket=OUTPUT_BUCKET,
                 Key=result_key,
-                Body=json.dumps(llm_result).encode('utf-8'),
-                ContentType='application/json'
+                Body=json.dumps(llm_result).encode("utf-8"),
+                ContentType="application/json",
             )
             url = f"s3://{OUTPUT_BUCKET}/{result_key}"
             logger.info(f"Image LLM result saved to {url}")
@@ -308,13 +307,13 @@ class SQSPollingServer:
         isComplete = True
         try:
             self.dynamo_table.update_item(
-                Key={'job_id': job_id},
+                Key={"job_id": job_id},
                 UpdateExpression=f"SET {url_var} = :url, video_complete = :complete, updated_at = :time",
                 ExpressionAttributeValues={
-                    ':url': result_s3_url,
-                    ':complete': isComplete,
-                    ':time': datetime.utcnow().isoformat()
-                }
+                    ":url": result_s3_url,
+                    ":complete": isComplete,
+                    ":time": datetime.utcnow().isoformat(),
+                },
             )
             logger.info(f"DynamoDB updated for job_id: {job_id}")
             return True
@@ -322,7 +321,6 @@ class SQSPollingServer:
             logger.error(f"Failed to update Dynamo DB for job_id {job_id}: {e}")
             return False
 
-    
     def poll_queue(self):
         """Poll the SQS queue for messages"""
         while self.running:
@@ -332,55 +330,57 @@ class SQSPollingServer:
                     QueueUrl=self.queue_url,
                     MaxNumberOfMessages=1,  # Process up to 1 message at once
                     WaitTimeSeconds=20,  # Long polling
-                    VisibilityTimeout=60  # 1 minute to process
+                    VisibilityTimeout=60,  # 1 minute to process
                 )
-                
-                messages = response.get('Messages', [])
-                
+
+                messages = response.get("Messages", [])
+
                 if messages:
                     logger.info(f"Received {len(messages)} message(s)")
-                    
+
                     for message in messages:
                         # Process the message
-                        success = self.process_message(message['Body'])
-                        
+                        success = self.process_message(message["Body"])
+
                         if success:
                             # Delete message from queue after successful processing
                             self.sqs.delete_message(
                                 QueueUrl=self.queue_url,
-                                ReceiptHandle=message['ReceiptHandle']
+                                ReceiptHandle=message["ReceiptHandle"],
                             )
                             logger.info("Message deleted from queue")
                         else:
                             # Message will become visible again after VisibilityTimeout
-                            logger.warning("Message processing failed, will retry later")
+                            logger.warning(
+                                "Message processing failed, will retry later"
+                            )
                 else:
                     logger.debug("No messages in queue")
-                    
+
             except KeyboardInterrupt:
                 logger.info("Received interrupt signal")
                 self.shutdown()
             except Exception as e:
                 logger.error(f"Error polling queue: {e}")
                 time.sleep(5)  # Wait before retrying
-    
+
     def shutdown(self):
         """Gracefully shutdown the server"""
         logger.info("Shutting down server...")
         self.running = False
-    
+
     def run(self):
         """Start the polling server"""
         logger.info(f"Starting SQS polling server for queue: {self.queue_name}")
         logger.info("Press Ctrl+C to stop")
-        
+
         # Set up signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, lambda s, f: self.shutdown())
         signal.signal(signal.SIGTERM, lambda s, f: self.shutdown())
-        
+
         # Start polling
         self.poll_queue()
-        
+
         logger.info("Server stopped")
 
 
@@ -389,7 +389,7 @@ def main():
     # Configuration
     QUEUE_NAME = "ai-chaperone-image-processing-queue"
     REGION = "us-east-2"  # Adjust if your queue is in a different region
-    
+
     try:
         # Create and run the server
         server = SQSPollingServer(QUEUE_NAME, REGION)
