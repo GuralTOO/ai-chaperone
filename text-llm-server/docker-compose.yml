@@ -1,0 +1,64 @@
+services:
+  # VLLM Inference Server
+  vllm:
+    build:
+      context: ./docker
+      dockerfile: dockerfile
+    container_name: vllm-server
+    environment:
+      - MODEL_ID=google/gemma-3-4b-it
+      - MODEL_DIR=/models
+      - HOST=0.0.0.0
+      - PORT=8000
+      - GPU_MEMORY_UTILIZATION=0.94
+      - TENSOR_PARALLEL_SIZE=1
+      - HF_TOKEN=${HF_TOKEN}
+    volumes:
+      - models:/models
+    ports:
+      - "8000:8000"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python3",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')",
+        ]
+      interval: 30s
+      timeout: 10s
+      start_period: 180s
+      retries: 3
+    restart: unless-stopped
+
+  # SQS Worker / Application Layer
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: transcript-worker
+    environment:
+      - VLLM_URL=http://vllm:8000
+      - AWS_REGION=us-east-2
+      - QUEUE_NAME=ai-chaperone-text-llm-queue
+      - OUTPUT_BUCKET=ai-chaperone-dev
+      - DYNAMO_TABLE=ai-chaperone-video-moderation-jobs
+      # AWS credentials will be picked up from IAM role on EC2
+      # If running locally, you can mount credentials or set them here:
+      # - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      # - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    depends_on:
+      vllm:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  models:
+    driver: local

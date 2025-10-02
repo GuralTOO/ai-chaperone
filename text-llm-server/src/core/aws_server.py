@@ -4,8 +4,9 @@ import time
 import logging
 import signal
 import sys
+import os
 from datetime import datetime
-from model_client import ModelClient
+from .model_client import ModelClient
 from core.utils.model_utils import get_system_prompt, get_user_prompt, get_json_schema
 
 logging.basicConfig(
@@ -14,8 +15,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-OUTPUT_BUCKET = "ai-chaperone-dev"
-DYNAMO_TABLE = "ai-chaperone-video-moderation-jobs"
+OUTPUT_BUCKET = os.getenv("OUTPUT_BUCKET", "ai-chaperone-dev")
+DYNAMO_TABLE = os.getenv("DYNAMO_TABLE", "ai-chaperone-video-moderation-jobs")
 
 class SQSPollingServer:
     def __init__(self, queue_name, region='us-east-2'):
