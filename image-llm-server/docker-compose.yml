@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   # VLLM Inference Server
@@ -14,8 +14,7 @@ services:
       - PORT=8000
       - GPU_MEMORY_UTILIZATION=0.94
       - TENSOR_PARALLEL_SIZE=1
-      # Optional: Uncomment if you need HuggingFace token for private models
-      # - HF_TOKEN=${HF_TOKEN}
+      - HF_TOKEN=${HF_TOKEN}
     volumes:
       - ./models:/models
     ports:
@@ -28,7 +27,13 @@ services:
               count: 1
               capabilities: [gpu]
     healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      test:
+        [
+          "CMD",
+          "python3",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')",
+        ]
       interval: 30s
       timeout: 10s
       start_period: 60s

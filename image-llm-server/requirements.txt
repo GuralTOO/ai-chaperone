@@ -4,8 +4,6 @@ boto3==1.40.42
 botocore==1.40.42
 certifi==2025.8.3
 charset-normalizer==3.4.3
-# Editable Git install with no remote (core==0.1.0)
--e /home/ec2-user/project
 idna==3.10
 jmespath==1.0.1
 numpy==2.3.3
