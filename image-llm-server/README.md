@@ -15,9 +15,10 @@ This system consists of two containerized services:
 ## Architecture
 
 ```
-AWS SQS Queue � Worker Container � VLLM Container (GPU)
-                      �
-                AWS S3 (results) + DynamoDB (job status)
+AWS SQS Queue --> Worker Container --> VLLM Container (GPU)
+                       |
+                       v
+                 AWS S3 (results) + DynamoDB (job status)
 ```
 
 ## Prerequisites
@@ -112,6 +113,9 @@ docker-compose down
 - `AWS_REGION` - AWS region for SQS/S3/DynamoDB (default: `us-east-2`)
 - `QUEUE_NAME` - SQS queue to poll for jobs (default:
   `ai-chaperone-image-processing-queue`)
+- `OUTPUT_BUCKET` - S3 bucket for storing results (default: `ai-chaperone-dev`)
+- `DYNAMO_TABLE` - DynamoDB table for job tracking (default:
+  `ai-chaperone-video-moderation-jobs`)
 
 ### AWS Credentials
 
@@ -178,10 +182,12 @@ pip install -e .
 # otherwise
 pip install .
 ```
-A requirements.txt file is also included for optional dependency installation via `pip install -r requirements.txt`
+
+A requirements.txt file is also included for optional dependency installation
+via `pip install -r requirements.txt`
 
 2. Run VLLM server separately
-   
+
 ```bash
 screen -S vllm-server
 export HF_TOKEN="your_huggingface_access_token"

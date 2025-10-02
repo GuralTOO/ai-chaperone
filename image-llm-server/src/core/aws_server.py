@@ -17,8 +17,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-OUTPUT_BUCKET = "ai-chaperone-dev"
-DYNAMO_TABLE = "ai-chaperone-video-moderation-jobs"
+OUTPUT_BUCKET = os.getenv("OUTPUT_BUCKET", "ai-chaperone-dev")
+DYNAMO_TABLE = os.getenv("DYNAMO_TABLE", "ai-chaperone-video-moderation-jobs")
 
 
 class SQSPollingServer:

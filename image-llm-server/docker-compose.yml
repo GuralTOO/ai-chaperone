@@ -48,6 +48,8 @@ services:
       - VLLM_URL=http://vllm:8000
       - AWS_REGION=us-east-2
       - QUEUE_NAME=ai-chaperone-image-processing-queue
+      - OUTPUT_BUCKET=ai-chaperone-dev
+      - DYNAMO_TABLE=ai-chaperone-video-moderation-jobs
       # AWS credentials will be picked up from IAM role on EC2
       # If running locally, you can mount credentials or set them here:
       # - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
