@@ -57,35 +57,37 @@ check_write_permissions() {
 
 download_from_huggingface() {
     log "Downloading model '${MODEL_ID}' from HuggingFace..."
-    
+
     if [ -n "${HF_TOKEN}" ]; then
+        log "Using HuggingFace token: ${HF_TOKEN:0:10}..."
         export HUGGING_FACE_HUB_TOKEN="${HF_TOKEN}"
+    else
+        log "No HuggingFace token provided"
     fi
-    
+
     # Set cache directory if specified
     if [ -n "${HF_HUB_CACHE}" ]; then
         export HF_HOME="${HF_HUB_CACHE}"
     fi
-    
+
     local model_path="${MODEL_DIR}/${MODEL_ID//\//_}"
-    
+
     # Try to create the directory
     if ! mkdir -p "${model_path}" 2>/dev/null; then
         log "ERROR: Cannot create directory ${model_path}"
         check_write_permissions "${MODEL_DIR}"
         exit 1
     fi
-    
-    if ! huggingface-cli download "${MODEL_ID}" \
+
+    if ! hf download "${MODEL_ID}" \
         --local-dir "${model_path}" \
-        --local-dir-use-symlinks False \
         ${HF_TOKEN:+--token "${HF_TOKEN}"} >&2; then
         log "ERROR: Failed to download model from HuggingFace"
         exit 1
     fi
-    
+
     log "Model downloaded successfully to ${model_path}"
-    
+
     # Only output to stdout - this is what gets captured
     echo "${model_path}"
 }
