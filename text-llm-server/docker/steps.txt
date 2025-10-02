@@ -1,0 +1,7 @@
+docker build -t vllm-server:latest .
+mkdir -p ~/models
+docker run --gpus all \
+  -p 8000:8000 \
+  -v ~/models:/models \
+  --env-file .env \
+  vllm-server:latest

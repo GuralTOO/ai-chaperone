@@ -1,7 +1,7 @@
 # ============================================================================
 # Application Layer - SQS Worker
 # ============================================================================
-FROM python:3.12-slim
+FROM python:3.12
 
 # Set non-interactive frontend
 ENV DEBIAN_FRONTEND=noninteractive

@@ -1,0 +1,97 @@
+# ============================================================================
+# SINGLE STAGE - VLLM with CUDA support
+# ============================================================================
+FROM nvidia/cuda:12.1.0-cudnn8-devel-ubuntu22.04
+
+# Set non-interactive frontend to prevent timezone and other prompts
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=UTC
+
+# Install Python 3.12 and all required dependencies
+# Note: We use devel image and keep build tools because vLLM/Triton
+# needs to JIT-compile kernels at runtime
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    software-properties-common \
+    gnupg2 \
+    curl \
+    git \
+    ca-certificates \
+    build-essential \
+    tzdata && \
+    ln -sf /usr/share/zoneinfo/$TZ /etc/localtime && \
+    echo $TZ > /etc/timezone && \
+    add-apt-repository ppa:deadsnakes/ppa && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+    python3.12 \
+    python3.12-dev \
+    python3.12-venv && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create symlinks for Python
+RUN ln -sf /usr/bin/python3.12 /usr/bin/python && \
+    ln -sf /usr/bin/python3.12 /usr/bin/python3
+
+# Install pip and UV for faster dependency management
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.12 && \
+    python3.12 -m pip install --no-cache-dir uv==0.8.17
+
+# Install VLLM and dependencies using UV
+# --torch-backend=auto ensures proper CUDA/PyTorch configuration
+RUN python3.12 -m uv pip install --system --no-cache \
+    vllm --torch-backend=auto \
+    flashinfer-python \
+    huggingface-hub \
+    boto3
+
+# ============================================================================
+# USER SETUP - Create non-root user for security
+# ============================================================================
+
+# Create a dedicated user and group for running the application
+RUN groupadd -g 1001 vllm && \
+    useradd -u 1001 -g vllm -s /bin/bash -m vllm && \
+    mkdir -p /models /app /home/vllm/.cache && \
+    chown -R vllm:vllm /models /app /home/vllm/.cache
+
+# ============================================================================
+# APPLICATION SETUP
+# ============================================================================
+
+WORKDIR /app
+
+# Copy entrypoint script
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+# ============================================================================
+# HEALTH CHECK
+# ============================================================================
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD python3 -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
+
+# ============================================================================
+# RUNTIME CONFIGURATION
+# ============================================================================
+
+# Switch to non-root user for security
+USER vllm
+
+# Set environment variables with sensible defaults
+ENV MODEL_ID="google/gemma-3-4b-it" \
+    MODEL_DIR="/models" \
+    HOST="0.0.0.0" \
+    PORT="8000" \
+    GPU_MEMORY_UTILIZATION="0.9" \
+    TENSOR_PARALLEL_SIZE="1" \
+    PYTHONUNBUFFERED="1" \
+    CUDA_VISIBLE_DEVICES="0"
+
+# Expose the API port
+EXPOSE 8000
+
+# Use the entrypoint script
+ENTRYPOINT ["/app/entrypoint.sh"]
