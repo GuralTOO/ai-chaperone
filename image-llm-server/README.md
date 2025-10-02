@@ -173,12 +173,23 @@ Results are saved to:
 1. Install dependencies:
 
 ```bash
-pip install -r requirements.txt
+# editable install
 pip install -e .
+# otherwise
+pip install .
 ```
+A requirements.txt file is also included for optional dependency installation via `pip install -r requirements.txt`
 
 2. Run VLLM server separately
-3. Set environment variables and run worker:
+   
+```bash
+screen -S vllm-server
+export HF_TOKEN="your_huggingface_access_token"
+vllm serve google/gemma-3-4b-it # or your model name / path to model
+# Ctrl+A D to detach
+```
+
+4. Set environment variables and run worker:
 
 ```bash
 export VLLM_URL=http://localhost:8000
