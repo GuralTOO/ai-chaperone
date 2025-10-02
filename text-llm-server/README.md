@@ -1,13 +1,17 @@
 # Text LLM Server
 
-A containerized transcript moderation system that uses text LLMs to analyze video transcripts for safety violations and generate content summaries.
+A containerized transcript moderation system that uses text LLMs to analyze
+video transcripts for safety violations and generate content summaries.
 
 ## Overview
 
 This system consists of two containerized services:
 
-1. **VLLM Inference Server** - GPU-accelerated inference server running the Gemma-3 text model
-2. **SQS Worker** - Python application that polls AWS SQS for transcript moderation jobs, downloads transcripts, and sends them to the LLM for safety analysis and summarization
+1. **VLLM Inference Server** - GPU-accelerated inference server running the
+   Gemma-3 text model
+2. **SQS Worker** - Python application that polls AWS SQS for transcript
+   moderation jobs, downloads transcripts, and sends them to the LLM for safety
+   analysis and summarization
 
 ## Architecture
 
@@ -61,7 +65,7 @@ Edit `docker-compose.yml` to adjust:
 ### Start Services
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 This will:
@@ -76,20 +80,20 @@ This will:
 
 ```bash
 # View logs from both services
-docker-compose logs -f
+docker compose logs -f
 
 # View logs from specific service
-docker-compose logs -f vllm
-docker-compose logs -f worker
+docker compose logs -f vllm
+docker compose logs -f worker
 
 # Check service health
-docker-compose ps
+docker compose ps
 ```
 
 ### Stop Services
 
 ```bash
-docker-compose down
+docker compose down
 ```
 
 ## Configuration
@@ -137,7 +141,8 @@ The worker expects SQS messages in this format:
 
 The system generates two types of analysis per transcript:
 
-1. **Safety Analysis** - Identifies policy violations, categories, and risk levels
+1. **Safety Analysis** - Identifies policy violations, categories, and risk
+   levels
 2. **Summary** - Generates a concise summary of the transcript content
 
 Results are saved to:
@@ -164,8 +169,8 @@ Results are saved to:
 
 ### Worker Can't Connect to VLLM
 
-- Check VLLM container is healthy: `docker-compose ps`
-- View VLLM logs: `docker-compose logs vllm`
+- Check VLLM container is healthy: `docker compose ps`
+- View VLLM logs: `docker compose logs vllm`
 - Verify healthcheck passes: `curl http://localhost:8000/health`
 
 ### AWS Credentials Issues
