@@ -59,7 +59,10 @@ download_from_huggingface() {
     log "Downloading model '${MODEL_ID}' from HuggingFace..."
     
     if [ -n "${HF_TOKEN}" ]; then
+        log "Using HuggingFace token: ${HF_TOKEN}"
         export HUGGING_FACE_HUB_TOKEN="${HF_TOKEN}"
+    else
+        log "No HuggingFace token provided"
     fi
     
     # Set cache directory if specified
