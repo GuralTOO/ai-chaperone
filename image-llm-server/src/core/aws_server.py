@@ -5,9 +5,9 @@ import logging
 from datetime import datetime
 import signal
 import sys
-from model_client import ModelClient
+from .model_client import ModelClient
 from core.utils.model_utils import get_system_prompt, get_user_prompt, get_json_schema
-from core.utils.video_utils import sample_video_frames 
+from core.utils.video_utils import sample_video_frames
 import tempfile
 import os
 
