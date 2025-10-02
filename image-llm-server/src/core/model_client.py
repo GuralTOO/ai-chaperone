@@ -1,12 +1,15 @@
 import requests
 import json
 import logging
+import os
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 class ModelClient():
-    def __init__(self, url="http://localhost:8000", timeout=120):
+    def __init__(self, url=None, timeout=120):
+        if url is None:
+            url = os.getenv("VLLM_URL", "http://localhost:8000")
         self.url = f"{url}/v1/chat/completions"
         self.timeout = timeout
         logger.info(f"Initialized client for {url}")

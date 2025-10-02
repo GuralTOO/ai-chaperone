@@ -1,37 +1,38 @@
-FROM nvidia/cuda:12.8.0-cudnn-runtime-ubuntu22.04
+# ============================================================================
+# Application Layer - SQS Worker
+# ============================================================================
+FROM python:3.12-slim
+
+# Set non-interactive frontend
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install Python 3.12, required packages, and create symlink
+# Install system dependencies for video processing (av library needs ffmpeg)
 RUN apt-get update && \
-    apt-get install -y software-properties-common && \
-    add-apt-repository ppa:deadsnakes/ppa && \
-    apt-get update && \
-    apt-get install -y \
-        python3.12 \
-        python3.12-venv \
-        python3.12-dev \
-        python3-pip \
-	curl \
-        wget \
-        build-essential && \
-    ln -sf /usr/bin/python3.12 /usr/bin/python && \
-    ln -sf /usr/bin/python3.12 /usr/bin/python3 && \
-    apt-get clean && \
+    apt-get install -y --no-install-recommends \
+    ffmpeg \
+    libavcodec-dev \
+    libavformat-dev \
+    libavutil-dev \
+    libswscale-dev \
+    && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Set working directory
 WORKDIR /app
 
-RUN python3.12 --version || (echo "Error: python3.12 not found" && exit 1)
+# Copy dependency files
+COPY requirements.txt pyproject.toml ./
+COPY src/ ./src/
 
-RUN python3.12 -m venv venv
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir -e .
 
-RUN ./venv/bin/pip install uv==0.8.17
+# Environment variables with defaults
+ENV VLLM_URL="http://localhost:8000" \
+    AWS_REGION="us-east-2" \
+    QUEUE_NAME="ai-chaperone-image-processing-queue" \
+    PYTHONUNBUFFERED="1"
 
-RUN sh -c ". venv/bin/activate && uv pip install vllm --torch-backend=auto"
-
-ENV MODEL_NAME="/models/gemma-3"
-ENV HOST="0.0.0.0"
-ENV PORT="8000"
-ENV PATH="/app/venv/bin:$PATH" 
-EXPOSE 8000
-CMD ["vllm", "serve", "/models/gemma-3", "--host", "0.0.0.0", "--port", "8000"]
+# Run the SQS worker
+CMD ["python", "-m", "core.aws_server"]
