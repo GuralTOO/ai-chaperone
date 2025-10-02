@@ -21,12 +21,11 @@ RUN apt-get update && \
 WORKDIR /app
 
 # Copy dependency files
-COPY requirements.txt pyproject.toml ./
+COPY pyproject.toml ./
 COPY src/ ./src/
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir -e .
+RUN pip install --no-cache-dir -e .
 
 # Environment variables with defaults
 ENV VLLM_URL="http://localhost:8000" \
@@ -35,4 +34,4 @@ ENV VLLM_URL="http://localhost:8000" \
     PYTHONUNBUFFERED="1"
 
 # Run the SQS worker
-CMD ["python", "-m", "core.aws_server"]
+CMD ["aws-server"]
