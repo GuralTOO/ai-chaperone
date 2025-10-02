@@ -6,6 +6,13 @@ FROM python:3.12-slim
 # Set non-interactive frontend
 ENV DEBIAN_FRONTEND=noninteractive
 
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    ca-certificates \
+    && apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 # Set working directory
 WORKDIR /app
 
