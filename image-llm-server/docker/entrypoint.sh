@@ -81,7 +81,6 @@ download_from_huggingface() {
     
     if ! hf download "${MODEL_ID}" \
         --local-dir "${model_path}" \
-        --local-dir-use-symlinks False \
         ${HF_TOKEN:+--token "${HF_TOKEN}"} >&2; then
         log "ERROR: Failed to download model from HuggingFace"
         exit 1
