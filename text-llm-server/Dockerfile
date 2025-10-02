@@ -9,7 +9,6 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Install system dependencies for video processing (av library needs ffmpeg)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    ffmpeg \
     libavcodec-dev \
     libavformat-dev \
     libavutil-dev \
