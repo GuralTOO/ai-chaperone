@@ -6,14 +6,10 @@ FROM python:3.12-slim
 # Set non-interactive frontend
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install system dependencies for video processing (av library needs ffmpeg)
+# Install system dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    ffmpeg \
-    libavcodec-dev \
-    libavformat-dev \
-    libavutil-dev \
-    libswscale-dev \
+    ca-certificates \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 

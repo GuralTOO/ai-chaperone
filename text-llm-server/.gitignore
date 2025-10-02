@@ -3,3 +3,6 @@ venv/
 *.egg-info/
 *.pyc
 .venv/
+fake_data/
+*.log
+*_test.py
