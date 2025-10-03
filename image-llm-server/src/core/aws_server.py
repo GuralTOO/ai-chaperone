@@ -19,12 +19,15 @@ from .model_client import ModelClient
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
+# Configuration from environment variables
 OUTPUT_BUCKET = os.getenv("OUTPUT_BUCKET", "ai-chaperone-dev")
 DYNAMO_TABLE = os.getenv("DYNAMO_TABLE", "ai-chaperone-video-moderation-jobs")
+QUEUE_NAME = os.getenv("SQS_QUEUE_NAME", "ai-chaperone-image-processing-queue")
+REGION = os.getenv("AWS_REGION", "us-east-2")
 
 
 class SQSPollingServer:
@@ -35,7 +38,7 @@ class SQSPollingServer:
         self.queue_name = queue_name
         self.region = region
         self.running = True
-        
+
         # Initialize AWS clients
         self.sqs = boto3.client("sqs", region_name=region)
         self.s3 = boto3.client("s3", region_name=region)
@@ -57,14 +60,14 @@ class SQSPollingServer:
     def _parse_s3_url(self, s3_url: str) -> tuple[Any, Any] | tuple[None, None]:
         """Parse S3 URL to get bucket and key."""
         # s3://bucket-name/path/to/object
-        if s3_url.startswith('s3://'):
+        if s3_url.startswith("s3://"):
             s3_url = s3_url[5:]
-            parts = s3_url.split('/', 1)
+            parts = s3_url.split("/", 1)
             if len(parts) == 2:
                 return parts[0], parts[1]
         return None, None
 
-    def _parse_llm_response(self, response: dict):
+    def _parse_llm_response(self, response: dict) -> dict[str, Any] | None:
         """Parse the LLM response.
 
         Check for validity and get JSON
@@ -111,12 +114,14 @@ class SQSPollingServer:
         self, video_path: str,
         fps: int = 1,
         max_frames: int = 50,
-    ):
+    ) -> list[Any] | None:
         """Analyze a video for any issues by sampling frames and sending them to the model.
 
         Args:
             video_path (str): Path to the video file to analyze
-        
+            fps (int): frames per second for sampling
+            max_frames (int): number of frames to sample
+
         Returns:
             str: Model response about any issues found in the video frames
 
@@ -124,7 +129,7 @@ class SQSPollingServer:
         logger.info("Analyzing video for issues: %s", video_path)
 
         client = ModelClient()
-        
+
         try:
             # Sample frames from the video
             logger.info("Sampling frames from video: %s", video_path)
@@ -148,24 +153,24 @@ class SQSPollingServer:
             messages = [
                 {
                     "role": "system",
-                    "content": get_system_prompt()
+                    "content": get_system_prompt(),
                 },
                 {
                     "role": "user",
                     "content": [
                         {
                             "type": "text",
-                            "text": get_user_prompt()
-                        }
+                            "text": get_user_prompt(),
+                        },
                     ] + [
                         {
                             "type": "image_url",
-                            "image_url": {"url": f"data:image/jpeg;base64,{image}"}
+                            "image_url": {"url": f"data:image/jpeg;base64,{image}"},
                         } for image in sampled_images
-                    ]
-                }
+                    ],
+                },
             ]
-            
+
             # Send to model for analysis
             logger.info("Sending frames to model for analysis")
             response = client.chat_completion(
@@ -204,7 +209,7 @@ class SQSPollingServer:
             response = self.analyze_video_for_issues(video_path=video_path)
             if response is None:
                 return False
-            
+
             llm_result = self._parse_llm_response(response)
             if llm_result is None:
                 logger.error("Failed to parse LLM response")
@@ -217,11 +222,8 @@ class SQSPollingServer:
             if s3_url is None:
                 return False
 
-            if not self._update_dynamo(job_id, s3_url):
-                return False
-            
-            return True
-        
+            return self._update_dynamo(job_id, s3_url)
+
         finally:
             try:
                 if video_path and os.path.exists(video_path):
@@ -238,8 +240,8 @@ class SQSPollingServer:
             logger.exception("Failed to parse message JSON")
             return None
 
-        job_id = data.get('job_id')
-        video_s3_url = data.get('video_s3_url')
+        job_id = data.get("job_id")
+        video_s3_url = data.get("video_s3_url")
 
         if not job_id or not video_s3_url:
             logger.error("Missing required fields: job_id or video_s3_url")
@@ -260,9 +262,9 @@ class SQSPollingServer:
             # Create a temporary directory for video files
             temp_dir = os.path.join(tempfile.gettempdir(), "video_processing")
             os.makedirs(temp_dir, exist_ok=True)
-            
+
             # Use job_id for filename with original extension
-            file_extension = os.path.splitext(key)[-1] or '.mp4'
+            file_extension = os.path.splitext(key)[-1] or ".mp4"
             video_path = os.path.join(temp_dir, f"{job_id}{file_extension}")
             with open(video_path, "wb") as f:
                 f.write(response["Body"].read())
@@ -305,8 +307,8 @@ class SQSPollingServer:
             self.s3.put_object(
                 Bucket=OUTPUT_BUCKET,
                 Key=result_key,
-                Body=json.dumps(llm_result).encode('utf-8'),
-                ContentType='application/json'
+                Body=json.dumps(llm_result).encode("utf-8"),
+                ContentType="application/json",
             )
             url = f"s3://{OUTPUT_BUCKET}/{result_key}"
             logger.info("Image LLM result saved to %s", url)
@@ -322,7 +324,7 @@ class SQSPollingServer:
         is_complete = True
         try:
             self.dynamo_table.update_item(
-                Key={'job_id': job_id},
+                Key={"job_id": job_id},
                 UpdateExpression=f"SET {url_var} = :url, video_complete = :complete, updated_at = :time",
                 ExpressionAttributeValues={
                     ":url": result_s3_url,
@@ -346,23 +348,23 @@ class SQSPollingServer:
                     QueueUrl=self.queue_url,
                     MaxNumberOfMessages=1,  # Process up to 1 message at once
                     WaitTimeSeconds=20,  # Long polling
-                    VisibilityTimeout=60  # 1 minute to process
+                    VisibilityTimeout=60,  # 1 minute to process
                 )
-                
-                messages = response.get('Messages', [])
-                
+
+                messages = response.get("Messages", [])
+
                 if messages:
                     logger.info("Received %s message(s)", len(messages))
 
                     for message in messages:
                         # Process the message
-                        success = self.process_message(message['Body'])
-                        
+                        success = self.process_message(message["Body"])
+
                         if success:
                             # Delete message from queue after successful processing
                             self.sqs.delete_message(
                                 QueueUrl=self.queue_url,
-                                ReceiptHandle=message['ReceiptHandle']
+                                ReceiptHandle=message["ReceiptHandle"]
                             )
                             logger.info("Message deleted from queue")
                         else:
@@ -370,7 +372,7 @@ class SQSPollingServer:
                             logger.warning("Message processing failed, will retry later")
                 else:
                     logger.debug("No messages in queue")
-                    
+
             except KeyboardInterrupt:
                 logger.info("Received interrupt signal")
                 self.shutdown()
@@ -382,7 +384,7 @@ class SQSPollingServer:
         """Gracefully shutdown the server."""
         logger.info("Shutting down server...")
         self.running = False
-    
+
     def run(self) -> None:
         """Start the polling server."""
         logger.info("Starting SQS polling server for queue: %s", self.queue_name)
@@ -400,10 +402,6 @@ class SQSPollingServer:
 
 def main() -> None:
     """Run main entry point."""
-    # Configuration from environment variables
-    QUEUE_NAME = os.getenv("SQS_QUEUE_NAME", "ai-chaperone-image-processing-queue")
-    REGION = os.getenv("AWS_REGION", "us-east-2")
-
     try:
         # Create and run the server
         server = SQSPollingServer(QUEUE_NAME, REGION)

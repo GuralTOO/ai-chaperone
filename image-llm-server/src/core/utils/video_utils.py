@@ -1,3 +1,4 @@
+"""Utilities for video frame sampling."""
 import base64
 from io import BytesIO
 from typing import Any
@@ -44,10 +45,10 @@ def sample_video_frames(video_path: str,
         for packet in container.demux(video_stream):
             for frame in packet.decode():
 
-                if frame.pts and video_stream.time_base is not None:
-                    current_time = float(frame.pts * video_stream.time_base)
-                else:
+                if frame.pts is None or video_stream.time_base is None:
                     continue
+
+                current_time = float(frame.pts * video_stream.time_base)
 
                 if current_time >= next_sample_time:
                     img = frame.to_image().convert("L")
