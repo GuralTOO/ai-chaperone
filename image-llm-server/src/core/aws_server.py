@@ -14,7 +14,7 @@ import boto3
 from core.utils.model_utils import get_json_schema, get_system_prompt, get_user_prompt
 from core.utils.video_utils import sample_video_frames
 
-from .model_client import ModelClient
+from core.model_client import ModelClient
 
 # Configure logging
 logging.basicConfig(
@@ -42,7 +42,7 @@ class SQSPollingServer:
         # Initialize AWS clients
         self.sqs = boto3.client("sqs", region_name=region)
         self.s3 = boto3.client("s3", region_name=region)
-        self.dynamo_table = boto3.client("dynamodb", region_name=region).Table(
+        self.dynamo_table = boto3.resource("dynamodb", region_name=region).Table(
             DYNAMO_TABLE,
         )
         self.model_client = ModelClient()
