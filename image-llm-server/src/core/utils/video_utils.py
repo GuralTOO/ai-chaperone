@@ -17,14 +17,16 @@ def pil_to_base64(pil_image: Image.Image) -> str:
 def sample_video_frames(video_path: str,
                         fps: int= 2,
                         max_frames: int = 10,
+                        img_size: tuple = (512, 288),
                         *,
                         convert_b64: bool = True) -> list[Any]:
     """Sample frames from video that have the biggest visual changes.
 
     Args:
         video_path: Path to video file
-        fps: Target sampling rate (frames per second)
+        fps: Target Sampling rate (frames per second)
         max_frames: Maximum number of frames to return
+        img_size: Size to resize the image for sampling
         convert_b64: To return in base64 format or not
 
     Returns:
@@ -52,7 +54,7 @@ def sample_video_frames(video_path: str,
 
                 if current_time >= next_sample_time:
                     img = frame.to_image().convert("L")
-                    img.thumbnail((512, 288))
+                    img.thumbnail(img_size)
                     frame_array = np.array(img)
 
                     if prev_frame is not None:

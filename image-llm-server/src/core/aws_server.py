@@ -19,7 +19,7 @@ from .model_client import ModelClient
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
+    format="%(asctime)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,7 @@ class SQSPollingServer:
                 return parts[0], parts[1]
         return None, None
 
-    def _parse_llm_response(self, response: dict) -> dict[str, Any] | None:
+    def _parse_llm_response(self, response: dict) -> dict[str, Any] | None:  # noqa: PLR0911
         """Parse the LLM response.
 
         Check for validity and get JSON

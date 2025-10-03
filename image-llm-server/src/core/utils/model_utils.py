@@ -52,7 +52,7 @@ def get_json_schema(output_type: str="safety") -> dict[str, Any] | None:
             )
             severity: list[Severity] = Field(
                 default_factory=list,
-                description="list of severity levels of categories: SAFE (if category is NONE), LOW, MEDIUM, HIGH"
+                description="list of severity levels of categories: SAFE (if category is NONE), LOW, MEDIUM, HIGH",
             )
             highest_severity_level: Severity = Field(
                 description="severity level SAFE/ LOW/ MEDIUM/ HIGH",
