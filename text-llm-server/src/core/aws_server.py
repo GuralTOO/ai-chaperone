@@ -1,4 +1,5 @@
 """Utilities for SQS polling server."""
+
 import json
 import logging
 import os
@@ -24,10 +25,11 @@ REGION = os.getenv("AWS_REGION", "us-east-2")
 OUTPUT_BUCKET = os.getenv("OUTPUT_BUCKET", "ai-chaperone-dev")
 DYNAMO_TABLE = os.getenv("DYNAMO_TABLE", "ai-chaperone-video-moderation-jobs")
 
+
 class SQSPollingServer:
     """Server that polls AWS SQS."""
 
-    def __init__(self, queue_name: str, region: str="us-east-2") -> None:
+    def __init__(self, queue_name: str, region: str = "us-east-2") -> None:
         """Initialize the SQS polling server."""
         self.queue_name = queue_name
         self.region = region
@@ -167,7 +169,7 @@ class SQSPollingServer:
 
         logger.info("LLM Summary: %s", json.dumps(llm_summary, indent=2))
 
-        s3_url = self._save_result_to_s3(job_id, llm_summary, output_type="summary"):
+        s3_url = self._save_result_to_s3(job_id, llm_summary, output_type="summary")
         if not s3_url:
             return False
 
@@ -204,11 +206,11 @@ class SQSPollingServer:
             logger.exception("Failed to download transcript from %s", f"s3://{bucket}/{key}")
             return None
 
-    def _log_transcript_preview(self, transcript: str)-> None:
+    def _log_transcript_preview(self, transcript: str) -> None:
         """Log a short preview of the transcript for debugging."""
         logger.info("Transcript preview: %s ...", transcript[:200])
 
-    def _build_messages(self, transcript_content: str, request_type: str ="safety") -> list[Any] | None:
+    def _build_messages(self, transcript_content: str, request_type: str = "safety") -> list[Any] | None:
         """Build messages for the LLM call."""
         try:
             user_prompt = get_user_prompt(transcript_content, output_type=request_type)
@@ -220,7 +222,7 @@ class SQSPollingServer:
             logger.exception("Failed to build prompts")
             return None
 
-    def _get_json_schema(self, request_type: str="safety") -> dict[str, Any] | None:
+    def _get_json_schema(self, request_type: str = "safety") -> dict[str, Any] | None:
         return get_json_schema(request_type)
 
     def _call_llm(self, messages: list[dict[Any, Any]], json_schema: dict[str, Any] | None = None) -> list[Any] | None:
@@ -231,10 +233,9 @@ class SQSPollingServer:
             logger.exception("LLM call failed")
             return None
 
-    def _save_result_to_s3(self,
-                           job_id: str,
-                           llm_result: dict[str, Any] | str,
-                           output_type: str ="safety") -> str | None:
+    def _save_result_to_s3(
+        self, job_id: str, llm_result: dict[str, Any] | str, output_type: str = "safety"
+    ) -> str | None:
         """Persist LLM result JSON to S3 and return the s3:// URL."""
         result_key = f"moderation-results/{job_id}/llm_{output_type}_result.json"
         try:
@@ -256,7 +257,9 @@ class SQSPollingServer:
 
     def _update_dynamo(self, job_id: str, result_s3_url: str, output_type: str = "safety") -> bool:
         """Update DynamoDB with job status and result location."""
-        url_var = "transcript_llm_safety_result_s3_url" if output_type == "safety" else "transcript_llm_summary_result_s3_url"
+        url_var = (
+            "transcript_llm_safety_result_s3_url" if output_type == "safety" else "transcript_llm_summary_result_s3_url"
+        )
         is_complete = output_type == "summary"
         try:
             self.dynamo_table.update_item(
@@ -275,7 +278,6 @@ class SQSPollingServer:
             return False
         else:
             return True
-
 
     def poll_queue(self) -> None:
         """Poll the SQS queue for messages."""
@@ -300,10 +302,7 @@ class SQSPollingServer:
 
                         if success:
                             # Delete message from queue after successful processing
-                            self.sqs.delete_message(
-                                QueueUrl=self.queue_url,
-                                ReceiptHandle=message["ReceiptHandle"]
-                            )
+                            self.sqs.delete_message(QueueUrl=self.queue_url, ReceiptHandle=message["ReceiptHandle"])
                             logger.info("Message deleted from queue")
                         else:
                             # Message will become visible again after VisibilityTimeout
