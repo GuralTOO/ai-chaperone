@@ -167,7 +167,8 @@ class SQSPollingServer:
 
         logger.info("LLM Summary: %s", json.dumps(llm_summary, indent=2))
 
-        if not self._save_result_to_s3(job_id, llm_summary, output_type="summary"):
+        s3_url = self._save_result_to_s3(job_id, llm_summary, output_type="summary"):
+        if not s3_url:
             return False
 
         return self._update_dynamo(job_id, s3_url, output_type="summary")
