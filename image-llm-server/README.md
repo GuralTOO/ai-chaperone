@@ -525,7 +525,7 @@ class SQSPollingServer:
 Server that polls AWS SQS for jobs, processes videos, and stores results in S3.
 
 **Parameters**
-* `queue_name` (str): Name of hte SQS queue to poll
+* `queue_name` (str): Name of the SQS queue to poll
 * `region` (str, optional): AWS region of all services (SQS, DynamoDB, and S3). Default: "us-east-2"
 
 **Attributes**
@@ -561,7 +561,7 @@ Continuously polls the SQS queue for jobs and processes them.
 * Uses long polling (20s wait)
 * Processes messages sequentially (1 at a time)
 * 60s visibility timeout
-* re-adds the job to the queue if visibility timeout is hit.
+* Re-adds the job to the queue if visibility timeout is hit.
 * Retries polling with 5s delay if exception occurs.
 
 ##### `process_message`
@@ -721,4 +721,4 @@ Calls the LLM through the model client
 ```python
 def main() -> None
 ```
-Entry point that intializes and runs the server.
+Entry point that initializes and runs the server.

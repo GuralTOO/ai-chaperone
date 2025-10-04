@@ -22,3 +22,12 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 core = ["prompts/*"]
+
+[tool.ruff.lint]
+select = ["ALL"]
+
+[tool.ruff]
+line-length = 120
+ignore = [
+    "PTH",  # Disable all pathlib-related rules
+]

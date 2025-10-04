@@ -1,17 +1,21 @@
-from pydantic import BaseModel, Field
+"""Utilities for prompts and json schema."""
 from enum import Enum
-from typing import List
+from typing import Any
+
+from pydantic import BaseModel, Field
+
 from core.utils.file_utils import load_file, validate_types
 
-def get_json_schema(output_type: str="safety"):
-    """
-    Get json schema to force json output from the model
-    
+
+def get_json_schema(output_type: str="safety") -> dict[str, Any]:
+    """Get json schema to force json output from the model.
+
     Args:
         output_type (str): category type of prompt
-    
-    returns:
+
+    Returns:
         dict:  JSON schema
+
     """
     validate_types(prompt_type="json", category_type=output_type)
 
@@ -21,7 +25,7 @@ def get_json_schema(output_type: str="safety"):
             low = "LOW"
             medium = "MEDIUM"
             high = "HIGH"
-        
+
         class Category(str, Enum):
             sexual_conent = "SEXUAL CONTENT"
             violence = "VIOLENCE"
@@ -42,16 +46,16 @@ def get_json_schema(output_type: str="safety"):
                 description="detailed explanation of analysis and scoring rationale",
                 min_length=10,
                 max_length=500
-            )   
+            )
 
-            categories: List[Category] = Field(
+            categories: list[Category] = Field(
                 default_factory=list,
                 description="list of violated categories, or NONE only if no violation"
             )
-            severity: List[Severity] = Field(
+            severity: list[Severity] = Field(
                 default_factory=list,
                 description="list of severity levels of categories: SAFE (if category is NONE), LOW, MEDIUM, HIGH"
-            ) 
+            )
             highest_severity_level: Severity = Field(
                 description="severity level SAFE/ LOW/ MEDIUM/ HIGH"
             )
@@ -64,40 +68,40 @@ def get_json_schema(output_type: str="safety"):
                 ...,
                 description="A concise summary of the conversation focusing on main topics and outcomes",
                 min_length=10,
-                max_length=500
-            )   
+                max_length=500,
+            )
 
-            delight: List[str] = Field(
+            delight: list[str] = Field(
                 default_factory=list,
                 description="List of specific exceptional moments of delight from the conversation and why they were delightful otherwise empty",
-                max_items=3
+                max_items=3,
             )
-        
+
         json_schema = ConversationAnalysis.model_json_schema()
 
     return json_schema
 
-def get_system_prompt(type: str="safety")-> str:
-    """
-    Get system prompt for a specific category type
+def get_system_prompt(output_type: str="safety")-> str:
+    """Get system prompt for a specific category type.
 
     Args:
-        type (str): category type of system prompt
-    
+        output_type (str): category type of system prompt
+
     Returns:
         str: system prompt of category type if exists
-    """
-    return load_file(prompt_type="system", category_type=type)
 
-def get_user_prompt(content, type: str="safety"):
     """
-    Get user prompt for a specific category type
+    return load_file(prompt_type="system", category_type=output_type)
+
+def get_user_prompt(content: str, output_type: str="safety") -> str:
+    """Get user prompt for a specific category type.
 
     Args:
-        type (str): category type of user prompt
+        output_type (str): category type of user prompt
         content: content to pass to the model
-    
+
     Returns:
-        str: user prompt of category type if exists"""
-    
-    return f"{load_file(prompt_type="user", category_type=type)}\n{content}"
+        str: user prompt of category type if exists
+
+    """
+    return f"{load_file(prompt_type="user", category_type=output_type)}\n{content}"

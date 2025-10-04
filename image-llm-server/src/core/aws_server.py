@@ -11,10 +11,9 @@ from typing import Any
 
 import boto3
 
+from core.model_client import ModelClient
 from core.utils.model_utils import get_json_schema, get_system_prompt, get_user_prompt
 from core.utils.video_utils import sample_video_frames
-
-from core.model_client import ModelClient
 
 # Configure logging
 logging.basicConfig(
@@ -300,7 +299,10 @@ class SQSPollingServer:
             logger.exception("LLM call failed")
             return None
 
-    def _save_result_to_s3(self, job_id: str, llm_result: dict[str, Any] | str, output_type: str="safety") -> str | None:
+    def _save_result_to_s3(self,
+                           job_id: str,
+                           llm_result: dict[str, Any] | str,
+                           output_type: str="safety") -> str | None:
         """Persist LLM result JSON to S3 and return the s3:// URL."""
         result_key = f"moderation-results/{job_id}/image_llm_{output_type}_result.json"
         try:
