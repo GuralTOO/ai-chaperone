@@ -67,7 +67,7 @@ The function creates job entries with the following attributes:
 ```json
 {
   "job_id": "uuid-string",
-  "status": "processing",
+  "status": "PROCESSING",
   "message": "Job queued successfully"
 }
 ```
